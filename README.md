@@ -13,7 +13,7 @@ See [`gke-upgrade-checklist.yaml`](./gke-upgrade-checklist.yaml) for a declarati
 - Performed smoke testing and monitoring
 
 ## 📸 Screenshots
-_(Optional: Add version-upgrade.png)_
+![kubectl version upgrade](./images/kubectl-version-upgrade.png)
 
 ## ✅ Completed On
 **Date:** June 26, 2025  
