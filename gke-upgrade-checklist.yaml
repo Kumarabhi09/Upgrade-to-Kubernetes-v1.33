@@ -1,0 +1,75 @@
+apiVersion: checklist.dev/v1
+kind: GKEUpgradeChecklist
+metadata:
+  name: gke-upgrade-v1-33
+  version: v1.0
+  owner: sre-team
+  cluster:
+    name: my-gke-cluster
+    location: us-central1-a
+    project: my-gcp-project
+    targetVersion: "1.33.1"
+spec:
+  preUpgrade:
+    - id: backup-configs
+      name: "Backup cluster configs"
+      status: done
+      notes: "Backed up all deployments, services, ingress, PVCs"
+
+    - id: export-manifests
+      name: "Export workload manifests"
+      status: done
+      command: >
+        kubectl get all --all-namespaces -o yaml > backup.yaml
+
+    - id: check-deprecated-apis
+      name: "Scan for deprecated APIs using Pluto"
+      status: done
+      command: pluto detect-helm -o pretty
+
+    - id: list-available-versions
+      name: "List GKE available versions"
+      status: done
+      command: >
+        gcloud container get-server-config --zone us-central1-a --format="table(validMasterVersions)"
+
+  upgrade:
+    - id: upgrade-master
+      name: "Upgrade control plane to v1.33.1"
+      status: in-progress
+      command: >
+        gcloud container clusters upgrade my-gke-cluster --master --cluster-version=1.33.1 --zone us-central1-a
+
+    - id: upgrade-node-pool
+      name: "Upgrade default node pool"
+      status: pending
+      command: >
+        gcloud container clusters upgrade my-gke-cluster --node-pool default-pool --cluster-version=1.33.1 --zone us-central1-a
+
+  postUpgrade:
+    - id: validate-nodes
+      name: "Ensure all nodes are on target version"
+      status: pending
+      command: kubectl get nodes -o wide
+
+    - id: rollout-restart
+      name: "Restart all deployments"
+      status: pending
+      command: kubectl rollout restart deployment --all
+
+    - id: monitor-errors
+      name: "Check logs and events for errors"
+      status: pending
+      command: kubectl get events --sort-by=.metadata.creationTimestamp
+
+    - id: test-critical-paths
+      name: "Run smoke test on key services"
+      status: pending
+      notes: "Login, payment, user creation validated"
+
+    - id: tag-release
+      name: "Tag Git with upgrade completion"
+      status: pending
+      command: git tag upgrade-v1.33.1 && git push origin upgrade-v1.33.1
+
+status: in-progress
